@@ -1,0 +1,62 @@
+name: Compilar APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Compilar
+        run: |
+          set -o pipefail
+          gradle --no-daemon -PversionCode=${{ github.run_number }} :app:assembleRelease 2>&1 | tee "$RUNNER_TEMP/build.log"
+
+      - name: Guardar log (rama ci-log)
+        if: always()
+        run: |
+          D="$RUNNER_TEMP/logrepo"
+          rm -rf "$D" && mkdir "$D" && cd "$D"
+          git init -q && git checkout -q -b ci-log
+          cp "$RUNNER_TEMP/build.log" build.log 2>/dev/null || echo "sin log" > build.log
+          echo "run ${{ github.run_number }} · ${{ job.status }} · ${{ github.sha }}" > STATUS.txt
+          git config user.name ci && git config user.email ci@users.noreply.github.com
+          git add -A && git commit -q -m "log run ${{ github.run_number }}"
+          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" ci-log
+
+      - name: Publicar versión
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          APK=app/build/outputs/apk/release/app-release.apk
+          cp "$APK" chanchi.apk
+          gh release create "v${{ github.run_number }}" chanchi.apk \
+            --title "Chanchi 1.${{ github.run_number }}" \
+            --notes "Instalá chanchi.apk en el celular. Si ya tenías Chanchi, se actualiza encima sin perder tus datos." \
+            --latest
+
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: chanchi-apk
+          path: app/build/outputs/apk/release/app-release.apk
