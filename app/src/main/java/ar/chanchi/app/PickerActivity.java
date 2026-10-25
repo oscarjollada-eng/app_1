@@ -47,7 +47,12 @@ public class PickerActivity extends Activity {
         s.setUserAgentString(s.getUserAgentString().replace("; wv", "").replace("Version/4.0 ", ""));
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(web, true);
-        web.setWebViewClient(new WebViewClient());
+        web.setWebViewClient(new WebViewClient() {
+            @Override public boolean shouldOverrideUrlLoading(WebView v, android.webkit.WebResourceRequest rq) {
+                String sc = rq.getUrl().getScheme();
+                return sc == null || !(sc.equals("http") || sc.equals("https"));
+            }
+        });
         root.addView(web, new LinearLayout.LayoutParams(-1, 0, 1f));
 
         LinearLayout bar = new LinearLayout(this);

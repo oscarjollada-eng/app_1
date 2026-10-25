@@ -77,6 +77,7 @@ final class Scraper {
     /** Carga una página, espera a que se asiente y corre el script. cb recibe el JSON (o null si falló). */
     private void load(String url, long settleMs, String js, boolean retryEmpty, java.util.function.Consumer<JSONObject> cb) {
         final int my = ++token;
+        retries = 0;
         final boolean[] finished = {false};
         WebView w = view();
         w.setWebViewClient(new WebViewClient() {
@@ -84,6 +85,10 @@ final class Scraper {
                 if (my != token || finished[0]) return;
                 finished[0] = true;
                 h.postDelayed(() -> run(my, js, retryEmpty, cb), settleMs);
+            }
+            @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest rq) {
+                String sc = rq.getUrl().getScheme();
+                return sc == null || !(sc.equals("http") || sc.equals("https")); // ignora deep links tipo meli://
             }
             @Override public void onReceivedError(WebView v, WebResourceRequest rq, WebResourceError e) {
                 if (my != token || finished[0] || !rq.isForMainFrame()) return;
@@ -96,6 +101,8 @@ final class Scraper {
         w.loadUrl(url);
     }
 
+    private int retries;
+
     private void run(int my, String js, boolean retryEmpty, java.util.function.Consumer<JSONObject> cb) {
         if (my != token) return;
         wv.evaluateJavascript(js, raw -> {
@@ -106,9 +113,15 @@ final class Scraper {
                 Object v = new JSONTokener(raw).nextValue();
                 if (v instanceof String) o = new JSONObject((String) v);
             } catch (Exception ignored) {}
-            if (retryEmpty && o != null && !o.optBoolean("blocked") && o.optJSONArray("items") != null && o.optJSONArray("items").length() == 0) {
-                h.postDelayed(() -> run(my, js, false, cb), 4000);
-                return;
+            if (retryEmpty && o != null && !o.optBoolean("blocked") && retries < 4) {
+                JSONArray its = o.optJSONArray("items");
+                boolean emptyList = its != null && its.length() == 0 && !o.has("err");
+                boolean thinPage = o.has("text") && o.optString("text").length() < 800;
+                if (emptyList || thinPage) {
+                    retries++;
+                    h.postDelayed(() -> run(my, js, true, cb), 3000);
+                    return;
+                }
             }
             cb.accept(o);
         });
@@ -203,12 +216,12 @@ final class Scraper {
         step[0] = () -> {
             JSONObject ad = q.poll();
             if (ad == null) { finish(fresh, done); return; }
-            load(ad.optString("url"), 2500, detailJs, false, res -> {
+            load(ad.optString("url"), 2500, detailJs, true, res -> {
                 try {
                     synchronized (store) {
                         ad.put("tries", ad.optInt("tries") + 1);
-                        android.util.Log.i("ChanchiScan", "detalle " + ad.optString("rid") + " len=" + (res == null ? -1 : res.optString("text").length()) + " lat=" + (res == null ? "-" : res.opt("lat")) + " fotos=" + (res == null || res.optJSONArray("photos") == null ? 0 : res.optJSONArray("photos").length()));
-                        if (res != null && !res.optBoolean("blocked") && res.optString("text").length() > 200) {
+                        android.util.Log.i("ChanchiScan", "detalle " + ad.optString("rid") + " título=" + (res == null ? "-" : res.optString("title")) + " len=" + (res == null ? -1 : res.optString("text").length()) + " lat=" + (res == null ? "-" : res.opt("lat")) + " fotos=" + (res == null || res.optJSONArray("photos") == null ? 0 : res.optJSONArray("photos").length()));
+                        if (res != null && !res.optBoolean("blocked") && res.optString("text").length() > 800) {
                             String text = res.optString("text");
                             Parse.features(ad, text);
                             Parse.fill(ad, text);
@@ -219,6 +232,7 @@ final class Scraper {
                             if (ph != null && ph.length() > 0) ad.put("photos", ph);
                             ad.put("ready", true);
                         } else if (ad.optInt("tries") >= 3) {
+                            if (res != null) android.util.Log.i("ChanchiScan", "detalle pobre " + ad.optString("rid") + " título=" + res.optString("title") + " texto=" + res.optString("text").substring(0, Math.min(200, res.optString("text").length())));
                             ad.put("ready", true); // se publica igual con lo que mostraba la tarjeta
                         }
                     }
