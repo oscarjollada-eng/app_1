@@ -129,6 +129,8 @@ final class Scraper {
     }
 
     // ---------- ciclo completo ----------
+    Runnable midway;
+
     void cycle(Done done) {
         store.busy = true;
         final List<JSONObject> fresh = new ArrayList<>();
@@ -256,6 +258,16 @@ final class Scraper {
     }
 
     private void details(List<JSONObject> unused, List<JSONObject> fresh, Done done) {
+        synchronized (store) {
+            for (JSONObject o : store.ads().values()) {
+                if (o.optBoolean("ready") && !o.optBoolean("bad") && !o.has("lat")) {
+                    double[] c = Parse.centroid(o.optString("barrio"));
+                    try { o.put("lat", c[0]); o.put("lng", c[1]); o.put("geo", 0); } catch (Exception ignored) {}
+                }
+            }
+            store.saveAds();
+        }
+        Runnable m = midway; if (m != null) m.run();
         final ArrayDeque<JSONObject> q = new ArrayDeque<>();
         final long t0 = System.currentTimeMillis();
         synchronized (store) {

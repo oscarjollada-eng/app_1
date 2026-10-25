@@ -74,6 +74,7 @@ public class WatchService extends Service {
         if (wl == null) wl = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "chanchi:scan");
         wl.acquire(4 * 60 * 1000L);
         if (Store.get(this).busy) { schedule(); return; }
+        scraper.midway = () -> { Runnable r = onData; if (r != null) r.run(); };
         scraper.cycle(fresh -> {
             try { notifyNew(fresh); } catch (Exception ignored) {}
             if (wl != null && wl.isHeld()) wl.release();
