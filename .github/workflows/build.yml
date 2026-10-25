@@ -89,6 +89,16 @@ jobs:
             adb exec-out screencap -p > shot1.png
             sleep 150
             adb exec-out screencap -p > shot2.png
+            adb shell input tap 275 600
+            sleep 2
+            adb shell input swipe 160 500 160 80 300
+            adb shell input swipe 160 500 160 80 300
+            adb shell input swipe 160 500 160 80 300
+            sleep 2
+            adb exec-out screencap -p > shot3.png
+            adb shell input tap 125 600
+            sleep 8
+            adb exec-out screencap -p > shot4.png
             adb logcat -d > logcat.txt
             adb shell dumpsys activity services ar.chanchi.app > services.txt
       - name: Guardar resultados (rama ci-smoke)
@@ -97,7 +107,7 @@ jobs:
           D="$RUNNER_TEMP/smoke"
           rm -rf "$D" && mkdir "$D" && cd "$D"
           git init -q && git checkout -q -b ci-smoke
-          for f in shot1.png shot2.png logcat.txt services.txt; do cp "$GITHUB_WORKSPACE/$f" . 2>/dev/null || true; done
+          for f in shot1.png shot2.png shot3.png shot4.png logcat.txt services.txt; do cp "$GITHUB_WORKSPACE/$f" . 2>/dev/null || true; done
           grep -E "ChanchiScan|AndroidRuntime|FATAL|chromium|ar.chanchi" logcat.txt > scan.txt 2>/dev/null || echo "sin log" > scan.txt
           echo "run ${{ github.run_number }}" > STATUS.txt
           git config user.name ci && git config user.email ci@users.noreply.github.com
