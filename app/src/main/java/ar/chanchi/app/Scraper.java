@@ -133,6 +133,7 @@ final class Scraper {
 
     void cycle(Done done) {
         store.busy = true;
+        store.retrySoon = false;
         final List<JSONObject> fresh = new ArrayList<>();
         final ArrayDeque<String[]> srcs = new ArrayDeque<>();
         for (String[] p : Store.PORTALS) if (store.sourceOn(p[0])) srcs.add(p);
@@ -181,7 +182,7 @@ final class Scraper {
         go[0] = () -> {
             if (ti[0] >= tasks.size()) {
                 if (okAny[0]) store.setStatus(id, true, "Funciona: " + tot[0] + " leídos, " + added[0] + " nuevos" + (skipped[0] > 0 ? ", " + skipped[0] + " incompletos" : ""), tot[0]);
-                else store.setStatus(id, false, fail[0] == null ? "Sin resultados" : fail[0], 0);
+                else { store.setStatus(id, false, fail[0] == null ? "Sin resultados" : fail[0], 0); if (fail[0] != null && fail[0].startsWith("No cargó")) store.retrySoon = true; }
                 next.run(); return;
             }
             String[] t = tasks.get(ti[0]);

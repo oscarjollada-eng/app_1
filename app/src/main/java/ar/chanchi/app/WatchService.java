@@ -85,7 +85,7 @@ public class WatchService extends Service {
 
     private void schedule() {
         h.removeCallbacks(loop);
-        if (running) h.postDelayed(loop, Store.get(this).interval() * 60_000L);
+        if (running) h.postDelayed(loop, Store.get(this).retrySoon ? 30_000L : Store.get(this).interval() * 60_000L);
     }
 
     /** Pedido manual desde la app. */

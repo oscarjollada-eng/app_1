@@ -33,6 +33,7 @@ final class Store {
     final SharedPreferences sp;
     private LinkedHashMap<String, JSONObject> ads;
     volatile boolean busy;
+    volatile boolean retrySoon;
 
     private Store(Context c) {
         ctx = c;
