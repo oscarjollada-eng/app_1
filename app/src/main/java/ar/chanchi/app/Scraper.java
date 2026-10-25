@@ -188,7 +188,7 @@ final class Scraper {
             listPage(id, pageUrl(id, t[0], page[0]), base0, r -> {
                 if (r.err != null) { if (fail[0] == null) fail[0] = r.err; page[0] = total + 1; }
                 else { okAny[0] = true; tot[0] += r.read; added[0] += r.added; skipped[0] += r.skipped; page[0]++; if (r.read == 0) page[0] = total + 1; }
-                go[0].run();
+                h.postDelayed(go[0], 2500);
             });
         };
         go[0].run();

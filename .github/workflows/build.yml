@@ -84,12 +84,8 @@ jobs:
             adb install -r app-release.apk
             adb logcat -c
             adb shell pm grant ar.chanchi.app android.permission.POST_NOTIFICATIONS
-            adb shell am start -n ar.chanchi.app/.MainActivity
-            sleep 12
-            adb shell input tap 160 310
-            adb shell input text Retiro
-            adb shell input keyevent 66
-            sleep 8
+            adb shell am start -n ar.chanchi.app/.MainActivity --es zone "Retiro CABA"
+            sleep 20
             adb exec-out screencap -p > shot1.png
             sleep 150
             adb exec-out screencap -p > shot2.png

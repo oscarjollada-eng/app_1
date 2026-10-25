@@ -62,6 +62,10 @@ public class MainActivity extends Activity {
                 }
                 return loader.shouldInterceptRequest(u);
             }
+            @Override public void onPageFinished(WebView v, String u) {
+                String z = getIntent().getStringExtra("zone");
+                if (z != null && HOST.equals(Uri.parse(u).getHost())) v.evaluateJavascript("setTimeout(function(){var e=document.getElementById('zone');e.value='" + z.replace("'", "") + "';e.dispatchEvent(new Event('change'));},1500)", null);
+            }
             @Override public boolean shouldOverrideUrlLoading(WebView v, WebResourceRequest r) {
                 Uri u = r.getUrl();
                 if (HOST.equals(u.getHost())) return false;
@@ -75,8 +79,6 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
         }
-        String z = getIntent().getStringExtra("zone");
-        if (z != null) store.setConfig("{\"zones\":[\"" + z + "\"]}");
         Updater.check(this);
     }
 
