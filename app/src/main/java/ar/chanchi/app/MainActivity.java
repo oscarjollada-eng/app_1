@@ -45,7 +45,7 @@ public class MainActivity extends Activity {
         web.setBackgroundColor(Color.TRANSPARENT);
         final WebViewAssetLoader loader = new WebViewAssetLoader.Builder()
             .setDomain(HOST)
-            .addPathHandler("/www/", new WebViewAssetLoader.AssetsPathHandler(this))
+            .addPathHandler("/", new WebViewAssetLoader.AssetsPathHandler(this))
             .build();
         web.setWebViewClient(new WebViewClient() {
             @Override public WebResourceResponse shouldInterceptRequest(WebView v, WebResourceRequest r) {

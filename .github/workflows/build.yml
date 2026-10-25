@@ -87,7 +87,7 @@ jobs:
             adb shell am start -n ar.chanchi.app/.MainActivity
             sleep 20
             adb exec-out screencap -p > shot1.png
-            sleep 100
+            sleep 150
             adb exec-out screencap -p > shot2.png
             adb logcat -d > logcat.txt
             adb shell dumpsys activity services ar.chanchi.app > services.txt

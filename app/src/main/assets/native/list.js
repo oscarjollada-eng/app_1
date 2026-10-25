@@ -1,4 +1,4 @@
-(function () {
+(function () { try {
   function t(e) { return e ? (e.innerText || e.textContent || '').replace(/\s+/g, ' ').trim() : ''; }
   var host = location.hostname, cards = [];
   function all(sel) { return [].slice.call(document.querySelectorAll(sel)); }
@@ -30,5 +30,12 @@
   });
   var body = t(document.body);
   var blocked = /just a moment|un momento|verificando|attention required|captcha|no soy un robot|are you human|acceso denegado/i.test(document.title + ' ' + body.slice(0, 400));
-  return JSON.stringify({ title: document.title, blocked: blocked && items.length === 0, n: cards.length, items: items.slice(0, 60) });
+  var diag = '';
+  if (!items.length) {
+    var cls = {};
+    [].slice.call(document.querySelectorAll('[class]')).slice(0, 1500).forEach(function (e) { String(e.className).split(/\s+/).forEach(function (c) { if (/card|item|result|posting|listing|poly/i.test(c)) cls[c] = (cls[c] || 0) + 1; }); });
+    diag = 'links=' + document.querySelectorAll('a[href]').length + ' classes=' + JSON.stringify(cls).slice(0, 500) + ' body=' + body.slice(0, 250);
+  }
+  return JSON.stringify({ title: document.title, blocked: blocked && items.length === 0, n: cards.length, diag: diag, items: items.slice(0, 60) });
+} catch (e) { return JSON.stringify({ err: String(e && e.message || e), items: [] }); }
 })();

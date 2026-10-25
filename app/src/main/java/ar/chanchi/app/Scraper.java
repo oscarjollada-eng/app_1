@@ -88,6 +88,7 @@ final class Scraper {
             @Override public void onReceivedError(WebView v, WebResourceRequest rq, WebResourceError e) {
                 if (my != token || finished[0] || !rq.isForMainFrame()) return;
                 finished[0] = true;
+                android.util.Log.i("ChanchiScan", "error de carga " + e.getErrorCode() + " " + e.getDescription() + " en " + rq.getUrl());
                 cb.accept(null);
             }
         });
@@ -100,6 +101,7 @@ final class Scraper {
         wv.evaluateJavascript(js, raw -> {
             if (my != token) return;
             JSONObject o = null;
+            if (raw == null || raw.length() < 60) android.util.Log.i("ChanchiScan", "resultado vacío del script: " + raw);
             try {
                 Object v = new JSONTokener(raw).nextValue();
                 if (v instanceof String) o = new JSONObject((String) v);
@@ -134,6 +136,7 @@ final class Scraper {
         load(store.sourceUrl(id), 2500, listJs, true, res -> {
             try {
                 if (res == null) { store.setStatus(id, false, "No cargó la página (¿sin conexión?)", -1); next.run(); return; }
+                android.util.Log.i("ChanchiScan", id + " title=" + res.optString("title") + " n=" + res.optInt("n") + " err=" + res.optString("err") + " diag=" + res.optString("diag"));
                 if (res.optBoolean("blocked")) { store.setStatus(id, false, "Pide verificación: tocá Abrir y resolvela", -1); next.run(); return; }
                 JSONArray items = res.optJSONArray("items");
                 if (items == null || items.length() == 0) {
