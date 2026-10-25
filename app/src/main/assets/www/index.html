@@ -452,6 +452,7 @@ window.CHANCHI_PWA=true;
 'use strict';
 var IS_PWA=!!window.CHANCHI_PWA;
 var NATIVE=!!window.ChanchiNative;
+function cfgZones(){var z=[];try{if(state.search.zone)z.push(state.search.zone);state.alerts.forEach(function(a){if(a.on&&a.search&&a.search.zone)z.push(a.search.zone);});}catch(e){}return z;}
 function nat(m){try{var a=Array.prototype.slice.call(arguments,1);return window.ChanchiNative[m].apply(window.ChanchiNative,a);}catch(e){return null;}}
 
 /* Datos de ejemplo. En la app instalada se reemplazan por listings.json (ver README). */
@@ -657,7 +658,7 @@ function persist(){
       saved:Array.from(state.saved),discarded:Array.from(state.discarded),alerts:state.alerts
     }));
   }catch(e){}
-  if(NATIVE)nat('setConfig',JSON.stringify({alerts:state.alerts,rate:state.rate}));
+  if(NATIVE)nat('setConfig',JSON.stringify({alerts:state.alerts,rate:state.rate,zones:cfgZones()}));
 }
 function tri(items,k){if(items.some(function(i){return i[k]===true;}))return true;if(items.every(function(i){return i[k]===false;}))return false;return null;}
 function inSet(set,p){return set.has(p.id)||p.rids.some(function(r){return set.has(r);});}
@@ -1299,7 +1300,7 @@ if(NATIVE){
   $('#srcNow').addEventListener('click',function(){nat('refreshNow');setTimeout(renderSources,300);toast('Buscando avisos nuevos…');});
   window.chanchiRefresh=function(){refreshData(false);renderSources();};
   window.chanchiStatus=renderSources;
-  nat('setConfig',JSON.stringify({alerts:state.alerts,rate:state.rate}));
+  nat('setConfig',JSON.stringify({alerts:state.alerts,rate:state.rate,zones:cfgZones()}));
 }
 
 /* ---------- arranque ---------- */

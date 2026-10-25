@@ -147,7 +147,21 @@ final class Scraper {
     private void listSource(String[] p, List<JSONObject> pending, Runnable next) {
         final String id = p[0];
         final boolean base0 = !store.hasBaseline(id);
-        pages(id, store.sourceUrl(id), 3, base0, pending, next);
+        List<String[]> tasks = new ArrayList<>();
+        tasks.add(new String[]{store.sourceUrl(id), "3"});
+        for (String z : store.zones()) { String u = zoneUrl(id, z); if (u != null) tasks.add(new String[]{u, "2"}); }
+        pages(id, tasks, base0, next);
+    }
+
+    static String zoneUrl(String id, String zone) {
+        String first = Parse.norm(zone.split("[,/]")[0]).replaceAll("\\s+(caba|capital federal|buenos aires)$", "");
+        if (first.isEmpty() || first.equals("capital federal") || first.equals("caba") || first.equals("buenos aires")) return null;
+        String slug = first.replaceAll("[^a-z0-9]+", "-").replaceAll("^-|-$", "");
+        switch (id) {
+            case "zonaprop": return "https://www.zonaprop.com.ar/departamentos-alquiler-" + slug + "-orden-publicado-descendente.html";
+            case "argenprop": return "https://www.argenprop.com/departamentos/alquiler/" + slug + "?orden-masnuevos";
+            default: return "https://inmuebles.mercadolibre.com.ar/departamentos/alquiler/capital-federal/" + slug + "/";
+        }
     }
 
     static String pageUrl(String id, String url, int n) {
@@ -157,19 +171,22 @@ final class Scraper {
         return url.replaceAll("/+$", "") + "/_Desde_" + ((n - 1) * 48 + 1) + "_NoIndex_True";
     }
 
-    private void pages(String id, String base, int total, boolean base0, List<JSONObject> pending, Runnable next) {
-        final int[] page = {1}, tot = {0}, added = {0}, skipped = {0};
+    private void pages(String id, List<String[]> tasks, boolean base0, Runnable next) {
+        final int[] ti = {0}, page = {1}, tot = {0}, added = {0}, skipped = {0};
         final boolean[] okAny = {false};
         final String[] fail = {null};
         Runnable[] go = new Runnable[1];
         go[0] = () -> {
-            if (page[0] > total) {
+            if (ti[0] >= tasks.size()) {
                 if (okAny[0]) store.setStatus(id, true, "Funciona: " + tot[0] + " leídos, " + added[0] + " nuevos" + (skipped[0] > 0 ? ", " + skipped[0] + " incompletos" : ""), tot[0]);
                 else store.setStatus(id, false, fail[0] == null ? "Sin resultados" : fail[0], 0);
                 next.run(); return;
             }
-            listPage(id, pageUrl(id, base, page[0]), base0, r -> {
-                if (r.err != null) { if (page[0] == 1) fail[0] = r.err; page[0] = total + 1; if (!okAny[0] && fail[0] == null) fail[0] = r.err; }
+            String[] t = tasks.get(ti[0]);
+            int total = Integer.parseInt(t[1]);
+            if (page[0] > total) { ti[0]++; page[0] = 1; go[0].run(); return; }
+            listPage(id, pageUrl(id, t[0], page[0]), base0, r -> {
+                if (r.err != null) { if (fail[0] == null) fail[0] = r.err; page[0] = total + 1; }
                 else { okAny[0] = true; tot[0] += r.read; added[0] += r.added; skipped[0] += r.skipped; page[0]++; if (r.read == 0) page[0] = total + 1; }
                 go[0].run();
             });

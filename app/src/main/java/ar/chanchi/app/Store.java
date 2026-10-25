@@ -55,14 +55,32 @@ final class Store {
     synchronized JSONArray alerts() {
         try { return new JSONArray(sp.getString("alerts", "[]")); } catch (Exception e) { return new JSONArray(); }
     }
-    void setConfig(String json) {
+    /** Zonas a buscar además de la búsqueda general: la zona actual y la de las alertas activas (máx. 3). */
+    synchronized List<String> zones() {
+        List<String> z = new ArrayList<>();
+        String raw = sp.getString("zones", "");
+        for (String x : raw.split("\\|")) if (!x.trim().isEmpty() && z.size() < 3) z.add(x.trim());
+        return z;
+    }
+
+    boolean setConfig(String json) {
+        boolean changed = false;
         try {
             JSONObject o = new JSONObject(json);
             SharedPreferences.Editor ed = sp.edit();
             if (o.has("alerts")) ed.putString("alerts", o.getJSONArray("alerts").toString());
             if (o.has("rate")) ed.putLong("rate", Double.doubleToLongBits(o.getDouble("rate")));
+            if (o.has("zones")) {
+                JSONArray za = o.getJSONArray("zones");
+                LinkedHashSet<String> set = new LinkedHashSet<>();
+                for (int i = 0; i < za.length(); i++) { String zz = za.optString(i, "").trim(); if (!zz.isEmpty() && Scraper.zoneUrl("meli", zz) != null) set.add(zz); }
+                String nv = String.join("|", set);
+                changed = !nv.equals(sp.getString("zones", ""));
+                ed.putString("zones", nv);
+            }
             ed.apply();
         } catch (Exception ignored) {}
+        return changed;
     }
 
     // ---------- estado por fuente ----------

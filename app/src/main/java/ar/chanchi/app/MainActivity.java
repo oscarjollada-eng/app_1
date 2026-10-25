@@ -75,6 +75,8 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 1);
         }
+        String z = getIntent().getStringExtra("zone");
+        if (z != null) store.setConfig("{\"zones\":[\"" + z + "\"]}");
         Updater.check(this);
     }
 
@@ -115,7 +117,7 @@ public class MainActivity extends Activity {
 
     /** Puente entre la interfaz web y el teléfono. */
     private final class Bridge {
-        @JavascriptInterface public void setConfig(String json) { store.setConfig(json); }
+        @JavascriptInterface public void setConfig(String json) { if (store.setConfig(json)) runOnUiThread(() -> WatchService.now(MainActivity.this)); }
         @JavascriptInterface public String getStatus() { return store.statusJson(); }
         @JavascriptInterface public void setSource(String id, boolean on) { store.setSourceOn(id, on); }
         @JavascriptInterface public void setEvery(int m) { store.setInterval(m); }
