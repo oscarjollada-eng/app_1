@@ -70,6 +70,7 @@ final class Store {
         try { return new JSONObject(sp.getString("st_" + id, "{}")); } catch (Exception e) { return new JSONObject(); }
     }
     void setStatus(String id, boolean ok, String msg, int count) {
+        android.util.Log.i("ChanchiScan", id + " ok=" + ok + " count=" + count + " :: " + msg);
         try {
             JSONObject o = status(id);
             o.put("ok", ok); o.put("msg", msg); o.put("last", System.currentTimeMillis());

@@ -204,6 +204,7 @@ final class Scraper {
                 try {
                     synchronized (store) {
                         ad.put("tries", ad.optInt("tries") + 1);
+                        android.util.Log.i("ChanchiScan", "detalle " + ad.optString("rid") + " len=" + (res == null ? -1 : res.optString("text").length()) + " lat=" + (res == null ? "-" : res.opt("lat")) + " fotos=" + (res == null || res.optJSONArray("photos") == null ? 0 : res.optJSONArray("photos").length()));
                         if (res != null && !res.optBoolean("blocked") && res.optString("text").length() > 200) {
                             String text = res.optString("text");
                             Parse.features(ad, text);
@@ -254,9 +255,12 @@ final class Scraper {
                 }
                 store.saveAds();
             }
+            android.util.Log.i("ChanchiScan", "ciclo listo: publicados=" + countReady() + " nuevos=" + fresh.size());
             h.post(() -> { store.busy = false; done.done(fresh); });
         });
     }
+
+    private int countReady() { int n = 0; synchronized (store) { for (JSONObject o : store.ads().values()) if (o.optBoolean("ready") && o.has("lat")) n++; } return n; }
 
     /** Nominatim (OpenStreetMap). Una consulta por segundo, con caché. */
     private double[] geocode(JSONObject ad) {

@@ -60,3 +60,46 @@ jobs:
         with:
           name: chanchi-apk
           path: app/build/outputs/apk/release/app-release.apk
+
+  smoke:
+    needs: apk
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: chanchi-apk
+      - name: Habilitar KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - name: Probar en emulador
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          script: |
+            adb install -r app-release.apk
+            adb logcat -c
+            adb shell pm grant ar.chanchi.app android.permission.POST_NOTIFICATIONS
+            adb shell am start -n ar.chanchi.app/.MainActivity
+            sleep 20
+            adb exec-out screencap -p > shot1.png
+            sleep 100
+            adb exec-out screencap -p > shot2.png
+            adb logcat -d > logcat.txt
+            adb shell dumpsys activity services ar.chanchi.app > services.txt
+      - name: Guardar resultados (rama ci-smoke)
+        if: always()
+        run: |
+          D="$RUNNER_TEMP/smoke"
+          rm -rf "$D" && mkdir "$D" && cd "$D"
+          git init -q && git checkout -q -b ci-smoke
+          for f in shot1.png shot2.png logcat.txt services.txt; do cp "$GITHUB_WORKSPACE/$f" . 2>/dev/null || true; done
+          grep -E "ChanchiScan|AndroidRuntime|FATAL|chromium|ar.chanchi" logcat.txt > scan.txt 2>/dev/null || echo "sin log" > scan.txt
+          echo "run ${{ github.run_number }}" > STATUS.txt
+          git config user.name ci && git config user.email ci@users.noreply.github.com
+          git add -A && git commit -q -m "smoke ${{ github.run_number }}"
+          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" ci-smoke
