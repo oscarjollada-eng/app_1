@@ -120,7 +120,8 @@ final class Parse {
         String t = norm(text);
         ad.put("balcon", t.contains("balcon"));
         boolean sep = Pattern.compile("cocina (separada|independiente|cerrada|definida|con puerta)|cocina y (comedor|living) (separad|independ)").matcher(t).find();
-        ad.put("cocina", sep);
+        boolean integ = Pattern.compile("cocina (integrada|americana|abierta)|kitchenette|cocina y (comedor|living) integrad|cocina-comedor|cocina comedor").matcher(t).find();
+        if (sep) ad.put("cocina", true); else if (integ) ad.put("cocina", false); else ad.remove("cocina");
         boolean owner = Pattern.compile("dueno directo|alquila (el )?dueno|dueno alquila|directo con (el )?dueno|sin comision|sin inmobiliaria|propietario directo|anunciante particular").matcher(t).find();
         ad.put("owner", owner);
         JSONArray g = new JSONArray();
@@ -151,7 +152,7 @@ final class Parse {
             if (d.equals("2") && dorm != 2) return false;
             if (d.equals("3") && dorm < 3) return false;
             if (s.optBoolean("balcon") && !ad.optBoolean("balcon")) return false;
-            if (s.optBoolean("cocina") && !ad.optBoolean("cocina")) return false;
+            if (s.optBoolean("cocina") && ad.has("cocina") && !ad.optBoolean("cocina")) return false;
             if (s.optBoolean("owner") && !ad.optBoolean("owner")) return false;
             JSONArray g = ad.optJSONArray("guar");
             String gs = g == null ? "" : g.toString();

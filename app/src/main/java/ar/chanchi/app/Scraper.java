@@ -147,29 +147,63 @@ final class Scraper {
     private void listSource(String[] p, List<JSONObject> pending, Runnable next) {
         final String id = p[0];
         final boolean base0 = !store.hasBaseline(id);
-        load(store.sourceUrl(id), 2500, listJs, true, res -> {
+        pages(id, store.sourceUrl(id), 3, base0, pending, next);
+    }
+
+    static String pageUrl(String id, String url, int n) {
+        if (n <= 1) return url;
+        if (id.equals("zonaprop")) return url.replaceFirst("\\.html.*$", "-pagina-" + n + ".html");
+        if (id.equals("argenprop")) return url + (url.contains("?") ? "&" : "?") + "pagina-" + n;
+        return url.replaceAll("/+$", "") + "/_Desde_" + ((n - 1) * 48 + 1);
+    }
+
+    private void pages(String id, String base, int total, boolean base0, List<JSONObject> pending, Runnable next) {
+        final int[] page = {1}, tot = {0}, added = {0}, skipped = {0};
+        final boolean[] okAny = {false};
+        final String[] fail = {null};
+        Runnable[] go = new Runnable[1];
+        go[0] = () -> {
+            if (page[0] > total) {
+                if (okAny[0]) store.setStatus(id, true, "Funciona: " + tot[0] + " leídos, " + added[0] + " nuevos" + (skipped[0] > 0 ? ", " + skipped[0] + " incompletos" : ""), tot[0]);
+                else store.setStatus(id, false, fail[0] == null ? "Sin resultados" : fail[0], 0);
+                next.run(); return;
+            }
+            listPage(id, pageUrl(id, base, page[0]), base0, r -> {
+                if (r.err != null) { if (page[0] == 1) fail[0] = r.err; page[0] = total + 1; if (!okAny[0] && fail[0] == null) fail[0] = r.err; }
+                else { okAny[0] = true; tot[0] += r.read; added[0] += r.added; skipped[0] += r.skipped; page[0]++; if (r.read == 0) page[0] = total + 1; }
+                go[0].run();
+            });
+        };
+        go[0].run();
+    }
+
+    private static final class PageRes { String err; int read, added, skipped; }
+
+    private void listPage(String id, String url, boolean base0, java.util.function.Consumer<PageRes> out) {
+        final PageRes pr = new PageRes();
+        load(url, 2500, listJs, true, res -> {
             try {
-                if (res == null) { store.setStatus(id, false, "No cargó la página (¿sin conexión?)", -1); next.run(); return; }
+                if (res == null) { pr.err = "No cargó la página (¿sin conexión?)"; out.accept(pr); return; }
                 android.util.Log.i("ChanchiScan", id + " title=" + res.optString("title") + " n=" + res.optInt("n") + " err=" + res.optString("err") + " diag=" + res.optString("diag"));
-                if (res.optBoolean("blocked")) { store.setStatus(id, false, "Pide verificación: tocá Abrir y resolvela", -1); next.run(); return; }
+                if (res.optBoolean("blocked")) { pr.err = "Pide verificación: tocá Abrir y resolvela"; out.accept(pr); return; }
                 JSONArray items = res.optJSONArray("items");
                 if (items == null || items.length() == 0) {
-                    store.setStatus(id, false, "No encontré avisos en la página (¿cambió el diseño o la búsqueda?)", 0);
-                    next.run(); return;
+                    pr.err = "No encontré avisos en la página (¿cambió el diseño o la búsqueda?)";
+                    out.accept(pr); return;
                 }
                 int added = 0, skipped = 0;
                 long now = System.currentTimeMillis();
                 synchronized (store) {
                     for (int i = 0; i < items.length(); i++) {
                         JSONObject it = items.getJSONObject(i);
-                        String url = it.getString("u");
-                        String num = lastNumber(url);
+                        String iu = it.getString("u");
+                        String num = lastNumber(iu);
                         if (num == null) { skipped++; continue; }
                         String rid = id + "-" + num;
                         JSONObject ad = store.ads().get(rid);
                         if (ad != null) { ad.put("lastSeen", now); continue; }
                         ad = new JSONObject();
-                        ad.put("rid", rid); ad.put("portal", id); ad.put("url", url);
+                        ad.put("rid", rid); ad.put("portal", id); ad.put("url", iu);
                         String text = it.optString("t");
                         Parse.fill(ad, text);
                         if (!ad.has("rent")) { skipped++; continue; }
@@ -181,18 +215,19 @@ final class Scraper {
                         String photo = it.optString("p");
                         JSONArray ph = new JSONArray(); if (!photo.isEmpty()) ph.put(photo);
                         ad.put("photos", ph);
-                        ad.put("balcon", false); ad.put("cocina", false); ad.put("owner", false); ad.put("guar", new JSONArray());
-                        ad.put("firstSeen", now); ad.put("lastSeen", now); ad.put("ready", false); ad.put("tries", 0);
+                        ad.put("owner", false); ad.put("guar", new JSONArray());
+                        ad.put("firstSeen", now); ad.put("lastSeen", now); ad.put("tries", 0); ad.put("detailed", false);
+                        if (ad.has("m2") && ad.has("amb")) { if (!ad.has("dorm")) ad.put("dorm", Math.max(0, ad.optInt("amb") - 1)); ad.put("ready", true); } else ad.put("ready", false);
                         ad.put("base", base0);
                         store.ads().put(rid, ad);
                         added++;
                     }
                 }
-                store.setStatus(id, true, "Funciona: " + items.length() + " en la página, " + added + " nuevos" + (skipped > 0 ? ", " + skipped + " incompletos" : ""), items.length());
+                pr.read = items.length(); pr.added = added; pr.skipped = skipped;
             } catch (Exception e) {
-                store.setStatus(id, false, "Error leyendo la página: " + e.getMessage(), -1);
+                pr.err = "Error leyendo la página: " + e.getMessage();
             }
-            next.run();
+            out.accept(pr);
         });
     }
 
@@ -209,7 +244,7 @@ final class Scraper {
         synchronized (store) {
             Map<String, ArrayDeque<JSONObject>> by = new LinkedHashMap<>();
             List<JSONObject> todo = new ArrayList<>();
-            for (JSONObject o : store.ads().values()) if (!o.optBoolean("ready")) todo.add(o);
+            for (JSONObject o : store.ads().values()) if (!o.optBoolean("detailed")) todo.add(o);
             Collections.sort(todo, (a, b) -> Long.compare(b.optLong("firstSeen"), a.optLong("firstSeen")));
             for (JSONObject o : todo) { by.computeIfAbsent(o.optString("portal"), k -> new ArrayDeque<>()).add(o); }
             boolean more = true;
@@ -240,12 +275,12 @@ final class Scraper {
                             if (ph != null && ph.length() > 0) ad.put("photos", ph);
                             if (!ad.has("m2") || !ad.has("amb")) ad.put("bad", true);
                             else if (!ad.has("dorm")) ad.put("dorm", Math.max(0, ad.optInt("amb") - 1));
-                            ad.put("ready", true);
+                            ad.put("ready", true); ad.put("detailed", true);
                         } else if (ad.optInt("tries") >= 3) {
                             if (res != null) android.util.Log.i("ChanchiScan", "detalle pobre " + ad.optString("rid") + " título=" + res.optString("title") + " texto=" + res.optString("text").substring(0, Math.min(200, res.optString("text").length())));
                             if (!ad.has("m2") || !ad.has("amb")) ad.put("bad", true);
                             else if (!ad.has("dorm")) ad.put("dorm", Math.max(0, ad.optInt("amb") - 1));
-                            ad.put("ready", true); // se publica igual con lo que mostraba la tarjeta
+                            ad.put("ready", true); ad.put("detailed", true);
                         }
                     }
                 } catch (Exception ignored) {}
@@ -261,12 +296,12 @@ final class Scraper {
             List<JSONObject> ready = new ArrayList<>();
             int budget = 10;
             synchronized (store) {
-                for (JSONObject o : store.ads().values()) if (o.optBoolean("ready") && !o.optBoolean("bad") && !o.has("lat")) ready.add(o);
+                for (JSONObject o : store.ads().values()) if (o.optBoolean("ready") && !o.optBoolean("bad") && o.optInt("geo", 0) != 1) ready.add(o);
             }
             for (JSONObject o : ready) {
                 try {
-                    if (budget <= 0) continue;
-                    double[] ll = geocode(o);
+                    if (budget <= 0 && o.has("lat")) continue;
+                    double[] ll = budget > 0 ? geocode(o) : null;
                     synchronized (store) {
                         if (ll == null) { ll = Parse.centroid(o.optString("barrio")); o.put("geo", 0); }
                         else o.put("geo", 1);
@@ -277,7 +312,7 @@ final class Scraper {
             }
             synchronized (store) {
                 for (JSONObject o : store.ads().values()) {
-                    if (o.optBoolean("ready") && !o.optBoolean("bad") && o.has("lat") && !o.optBoolean("notified")) {
+                    if (o.optBoolean("ready") && o.optBoolean("detailed") && !o.optBoolean("bad") && o.has("lat") && !o.optBoolean("notified")) {
                         try { o.put("notified", true); } catch (Exception ignored) {}
                         if (!o.optBoolean("base")) fresh.add(o);
                     }

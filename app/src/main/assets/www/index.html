@@ -618,7 +618,7 @@ function mergeGroup(items){
     lng:items.reduce(function(s,i){return s+i.lng;},0)/items.length,
     cur:f.cur,rent:Math.min.apply(null,items.map(function(i){return i.rent;})),exp:exp,
     m2:median(items.map(function(i){return i.m2;})),amb:f.amb,dorm:f.dorm,
-    balcon:items.some(function(i){return i.balcon;}),cocina:items.some(function(i){return i.cocina;}),
+    balcon:tri(items,'balcon'),cocina:tri(items,'cocina'),
     owner:items.some(function(i){return i.owner;}),guar:f.guar,mins:f.mins,photos:photos,
     sources:items.map(function(i){return {portal:i.portal,url:i.url||(PORTALS[i.portal]||{}).url};})
   };
@@ -659,6 +659,7 @@ function persist(){
   }catch(e){}
   if(NATIVE)nat('setConfig',JSON.stringify({alerts:state.alerts,rate:state.rate}));
 }
+function tri(items,k){if(items.some(function(i){return i[k]===true;}))return true;if(items.every(function(i){return i[k]===false;}))return false;return null;}
 function inSet(set,p){return set.has(p.id)||p.rids.some(function(r){return set.has(r);});}
 function dropFrom(set,p){set.delete(p.id);p.rids.forEach(function(r){set.delete(r);});}
 function countIn(set){return LISTINGS.filter(function(p){return inSet(set,p);}).length;}
@@ -702,8 +703,8 @@ function query(s,keepDiscarded){
     if(s.dorm==='1'&&p.dorm!==1)return false;
     if(s.dorm==='2'&&p.dorm!==2)return false;
     if(s.dorm==='3'&&p.dorm<3)return false;
-    if(s.balcon&&!p.balcon)return false;
-    if(s.cocina&&!p.cocina)return false;
+    if(s.balcon&&p.balcon===false)return false;
+    if(s.cocina&&p.cocina===false)return false;
     if(s.owner&&!p.owner)return false;
     if(s.caucion&&p.guar.indexOf('caucion')<0)return false;
     if(s.propietaria&&p.guar.indexOf('propietaria')<0)return false;
