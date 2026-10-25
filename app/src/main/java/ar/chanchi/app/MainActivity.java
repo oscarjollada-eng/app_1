@@ -139,6 +139,7 @@ public class MainActivity extends Activity {
                 }
             });
         }
+        @JavascriptInterface public void testNotification() { WatchService.testNotify(MainActivity.this); }
         @JavascriptInterface public void refreshNow() { runOnUiThread(() -> WatchService.now(MainActivity.this)); }
         @JavascriptInterface public void pick(String id, boolean capture) {
             runOnUiThread(() -> startActivity(new Intent(MainActivity.this, PickerActivity.class).putExtra("id", id).putExtra("capture", capture)));

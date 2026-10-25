@@ -416,7 +416,7 @@ h1{font-size:clamp(1.65rem,6vw,2.4rem);line-height:1.1;font-weight:700;letter-sp
           <select id="srcEvery"><option value="1">1 minuto</option><option value="2">2 minutos</option><option value="3">3 minutos</option><option value="5">5 minutos</option><option value="10">10 minutos</option><option value="15">15 minutos</option></select>
         </div>
         <div class="alert-row" style="border-top:0;padding:0"><div><b>Vigilar con la app cerrada</b><p class="sumline" id="watchTxt"></p></div><button type="button" class="switch" id="watchSw" role="switch" aria-checked="false" aria-label="Vigilar con la app cerrada"></button></div>
-        <div class="acts" style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="solid" id="srcNow">Buscar ahora</button></div>
+        <div class="acts" style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="solid" id="srcNow">Buscar ahora</button><button type="button" class="btn" id="srcTest">Probar aviso</button></div>
         <p class="sumline" id="srcInfo"></p>
       </div>
     </section>
@@ -1234,6 +1234,7 @@ if(NATIVE){
   });
   $('#srcEvery').addEventListener('change',function(){nat('setEvery',parseInt(this.value,10));renderSources();});
   $('#watchSw').addEventListener('click',function(){nat('setWatch',this.getAttribute('aria-checked')!=='true');renderSources();});
+  $('#srcTest').addEventListener('click',function(){nat('requestNotifications');nat('testNotification');});
   $('#srcNow').addEventListener('click',function(){nat('refreshNow');setTimeout(renderSources,300);toast('Buscando avisos nuevos…');});
   window.chanchiRefresh=function(){refreshData(false);renderSources();};
   window.chanchiStatus=renderSources;

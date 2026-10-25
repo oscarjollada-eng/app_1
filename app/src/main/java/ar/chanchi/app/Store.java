@@ -143,10 +143,10 @@ final class Store {
             iso.setTimeZone(TimeZone.getTimeZone("UTC"));
             for (JSONObject o : ads().values()) {
                 all.put(o);
-                if (!o.optBoolean("ready") || !o.has("lat")) continue;
+                if (!o.optBoolean("ready") || o.optBoolean("bad") || !o.has("lat")) continue;
                 JSONObject c = new JSONObject(o.toString());
                 c.put("published", iso.format(new Date(o.optLong("firstSeen", System.currentTimeMillis()))));
-                for (String k : new String[]{"firstSeen", "lastSeen", "ready", "tries", "base", "notified", "geo", "sig"}) c.remove(k);
+                for (String k : new String[]{"firstSeen", "lastSeen", "ready", "tries", "base", "notified", "geo", "sig", "bad"}) c.remove(k);
                 pub.put(c);
             }
             writeAll(adsFile(), all.toString());

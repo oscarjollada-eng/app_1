@@ -90,6 +90,17 @@ public class WatchService extends Service {
     /** Pedido manual desde la app. */
     static void now(Context c) { Intent i = new Intent(c, WatchService.class).setAction("now"); try { c.startForegroundService(i); } catch (Exception ignored) {} }
 
+    static void testNotify(Context c) {
+        NotificationManager nm = c.getSystemService(NotificationManager.class);
+        Notification n = new Notification.Builder(c, CH_NEW).setSmallIcon(R.drawable.ic_stat)
+            .setContentTitle("Nuevo en Palermo: Honduras 4800")
+            .setContentText("2 dorm. · 56 m² · $ 1.150.000 + exp. $ 210.000 · Así te va a llegar un aviso")
+            .setContentIntent(PendingIntent.getActivity(c, 8, new Intent(c, MainActivity.class), PendingIntent.FLAG_IMMUTABLE))
+            .setAutoCancel(true).build();
+        nm.createNotificationChannel(new NotificationChannel(CH_NEW, "Avisos nuevos", NotificationManager.IMPORTANCE_HIGH));
+        nm.notify(8, n);
+    }
+
     private void notifyNew(List<JSONObject> fresh) {
         if (fresh.isEmpty()) return;
         Store st = Store.get(this);

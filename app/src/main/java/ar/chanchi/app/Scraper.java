@@ -33,7 +33,8 @@ import java.util.concurrent.Executors;
 final class Scraper {
     interface Done { void done(List<JSONObject> fresh); }
 
-    private static final int MAX_DETAILS = 8;
+    private static final int MAX_DETAILS = 24;
+    private static final long DETAIL_BUDGET_MS = 110_000L;
     private final Context app;
     private final Store store;
     private final Handler h = new Handler(Looper.getMainLooper());
@@ -171,8 +172,7 @@ final class Scraper {
                         ad.put("rid", rid); ad.put("portal", id); ad.put("url", url);
                         String text = it.optString("t");
                         Parse.fill(ad, text);
-                        if (!ad.has("rent") || !ad.has("m2") || !ad.has("amb")) { skipped++; continue; }
-                        if (!ad.has("dorm")) ad.put("dorm", Math.max(0, ad.optInt("amb") - 1));
+                        if (!ad.has("rent")) { skipped++; continue; }
                         String loc = it.optString("l"), addr = it.optString("a");
                         String b = Parse.barrio(loc, text);
                         ad.put("barrio", b != null ? b : "Capital Federal");
@@ -205,16 +205,22 @@ final class Scraper {
 
     private void details(List<JSONObject> unused, List<JSONObject> fresh, Done done) {
         final ArrayDeque<JSONObject> q = new ArrayDeque<>();
+        final long t0 = System.currentTimeMillis();
         synchronized (store) {
+            Map<String, ArrayDeque<JSONObject>> by = new LinkedHashMap<>();
             List<JSONObject> todo = new ArrayList<>();
             for (JSONObject o : store.ads().values()) if (!o.optBoolean("ready")) todo.add(o);
-            // los más nuevos primero (los de la lista de cada portal vienen ordenados por reciente)
             Collections.sort(todo, (a, b) -> Long.compare(b.optLong("firstSeen"), a.optLong("firstSeen")));
-            for (JSONObject o : todo) { if (q.size() >= MAX_DETAILS) break; q.add(o); }
+            for (JSONObject o : todo) { by.computeIfAbsent(o.optString("portal"), k -> new ArrayDeque<>()).add(o); }
+            boolean more = true;
+            while (more && q.size() < MAX_DETAILS) {
+                more = false;
+                for (ArrayDeque<JSONObject> d : by.values()) { JSONObject o = d.poll(); if (o != null) { q.add(o); more = true; } }
+            }
         }
         Runnable[] step = new Runnable[1];
         step[0] = () -> {
-            JSONObject ad = q.poll();
+            JSONObject ad = System.currentTimeMillis() - t0 > DETAIL_BUDGET_MS ? null : q.poll();
             if (ad == null) { finish(fresh, done); return; }
             load(ad.optString("url"), 2500, detailJs, true, res -> {
                 try {
@@ -230,9 +236,13 @@ final class Scraper {
                             }
                             JSONArray ph = res.optJSONArray("photos");
                             if (ph != null && ph.length() > 0) ad.put("photos", ph);
+                            if (!ad.has("m2") || !ad.has("amb")) ad.put("bad", true);
+                            else if (!ad.has("dorm")) ad.put("dorm", Math.max(0, ad.optInt("amb") - 1));
                             ad.put("ready", true);
                         } else if (ad.optInt("tries") >= 3) {
                             if (res != null) android.util.Log.i("ChanchiScan", "detalle pobre " + ad.optString("rid") + " título=" + res.optString("title") + " texto=" + res.optString("text").substring(0, Math.min(200, res.optString("text").length())));
+                            if (!ad.has("m2") || !ad.has("amb")) ad.put("bad", true);
+                            else if (!ad.has("dorm")) ad.put("dorm", Math.max(0, ad.optInt("amb") - 1));
                             ad.put("ready", true); // se publica igual con lo que mostraba la tarjeta
                         }
                     }
@@ -249,7 +259,7 @@ final class Scraper {
             List<JSONObject> ready = new ArrayList<>();
             int budget = 10;
             synchronized (store) {
-                for (JSONObject o : store.ads().values()) if (o.optBoolean("ready") && !o.has("lat")) ready.add(o);
+                for (JSONObject o : store.ads().values()) if (o.optBoolean("ready") && !o.optBoolean("bad") && !o.has("lat")) ready.add(o);
             }
             for (JSONObject o : ready) {
                 try {
@@ -265,7 +275,7 @@ final class Scraper {
             }
             synchronized (store) {
                 for (JSONObject o : store.ads().values()) {
-                    if (o.optBoolean("ready") && o.has("lat") && !o.optBoolean("notified")) {
+                    if (o.optBoolean("ready") && !o.optBoolean("bad") && o.has("lat") && !o.optBoolean("notified")) {
                         try { o.put("notified", true); } catch (Exception ignored) {}
                         if (!o.optBoolean("base")) fresh.add(o);
                     }
@@ -277,7 +287,7 @@ final class Scraper {
         });
     }
 
-    private int countReady() { int n = 0; synchronized (store) { for (JSONObject o : store.ads().values()) if (o.optBoolean("ready") && o.has("lat")) n++; } return n; }
+    private int countReady() { int n = 0; synchronized (store) { for (JSONObject o : store.ads().values()) if (o.optBoolean("ready") && !o.optBoolean("bad") && o.has("lat")) n++; } return n; }
 
     /** Nominatim (OpenStreetMap). Una consulta por segundo, con caché. */
     private double[] geocode(JSONObject ad) {
