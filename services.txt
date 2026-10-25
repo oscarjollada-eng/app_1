@@ -1,0 +1,56 @@
+ACTIVITY MANAGER SERVICES (dumpsys activity services)
+  User 0 active services:
+  * ServiceRecord{c913f47 u0 ar.chanchi.app/org.chromium.content.app.SandboxedProcessService0:0}
+    intent={cmp=ar.chanchi.app/org.chromium.content.app.SandboxedProcessService0:0}
+    packageName=ar.chanchi.app
+    processName=com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0
+    baseDir=/data/app/~~ndJdCup6lpzkN8H9kG_YqQ==/com.google.android.webview-REZn4kEh2bnkifyC_YG23g==/WebViewGoogle.apk
+    dataDir=/data/user/0/com.google.android.webview
+    app=ProcessRecord{9e8f5b3 2910:com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0/u0a174i0}
+    isolationHostProc=ProcessRecord{9e8f5b3 2910:com.google.android.webview:sandboxed_process0:org.chromium.content.app.SandboxedProcessService0:0/u0a174i0}
+    allowWhileInUsePermissionInFgs=true
+    recentCallingPackage=ar.chanchi.app
+    recentCallingUid=10174
+    allowStartForeground=PROC_STATE_TOP
+    startForegroundCount=0
+    infoAllowStartForeground=[callingPackage: ar.chanchi.app; callingUid: 10174; uidState: TOP ; intent: Intent { cmp=ar.chanchi.app/org.chromium.content.app.SandboxedProcessService0:0 (has extras) }; code:PROC_STATE_TOP; tempAllowListReason:<null>; targetSdkVersion:33; callerTargetSdkVersion:34; startForegroundCount:0; bindFromPackage:null]
+    createTime=-3m4s52ms startingBgTimeout=--
+    lastActivity=-3m2s401ms restartTime=-3m3s351ms createdFromFg=true
+    Bindings:
+    * IntentBindRecord{a1bd06 CREATE}:
+      intent={cmp=ar.chanchi.app/org.chromium.content.app.SandboxedProcessService0:0}
+      binder=android.os.BinderProxy@5197fc7
+      requested=true received=true hasBound=true doRebind=false
+      * Client AppBindRecord{bb439f4 ProcessRecord{155fa01 2823:ar.chanchi.app/u0a174}}
+        Per-process Connections:
+          ConnectionRecord{9c949ae u0 CR IMP ar.chanchi.app/org.chromium.content.app.SandboxedProcessService0:0:@2427229}
+          ConnectionRecord{ceb4993 u0 CR WPRI ar.chanchi.app/org.chromium.content.app.SandboxedProcessService0:0:@7109e82}
+    All Connections:
+      ConnectionRecord{9c949ae u0 CR IMP ar.chanchi.app/org.chromium.content.app.SandboxedProcessService0:0:@2427229}
+      ConnectionRecord{ceb4993 u0 CR WPRI ar.chanchi.app/org.chromium.content.app.SandboxedProcessService0:0:@7109e82}
+
+  * ServiceRecord{b16c858 u0 ar.chanchi.app/.WatchService}
+    intent={cmp=ar.chanchi.app/.WatchService}
+    packageName=ar.chanchi.app
+    processName=ar.chanchi.app
+    baseDir=/data/app/~~6DreewHdti5yqYAHw_j6vg==/ar.chanchi.app-L7-kUYAexLoKjxaphsiHAA==/base.apk
+    dataDir=/data/user/0/ar.chanchi.app
+    app=ProcessRecord{155fa01 2823:ar.chanchi.app/u0a174}
+    allowWhileInUsePermissionInFgs=true
+    recentCallingPackage=ar.chanchi.app
+    recentCallingUid=10174
+    allowStartForeground=PROC_STATE_TOP
+    startForegroundCount=1
+    infoAllowStartForeground=[callingPackage: ar.chanchi.app; callingUid: 10174; uidState: TOP ; intent: Intent { cmp=ar.chanchi.app/.WatchService }; code:PROC_STATE_TOP; tempAllowListReason:<null>; targetSdkVersion:34; callerTargetSdkVersion:34; startForegroundCount:0; bindFromPackage:null]
+    isForeground=true foregroundId=1 foregroundNoti=Notification(channel=watch shortcut=null contentView=null vibrate=null sound=null defaults=0x0 flags=0x62 color=0x00000000 vis=PRIVATE)
+    createTime=-3m3s267ms startingBgTimeout=--
+    lastActivity=-2m27s67ms restartTime=-3m3s267ms createdFromFg=true
+    startRequested=true delayedStop=false stopIfKilled=false callStart=true lastStartId=3
+
+  Connection bindings to services:
+  * ConnectionRecord{9c949ae u0 CR IMP ar.chanchi.app/org.chromium.content.app.SandboxedProcessService0:0:@2427229}
+    binding=AppBindRecord{bb439f4 ar.chanchi.app/org.chromium.content.app.SandboxedProcessService0:0:ar.chanchi.app}
+    conn=android.os.BinderProxy@2427229 flags=0x80000041
+  * ConnectionRecord{ceb4993 u0 CR WPRI ar.chanchi.app/org.chromium.content.app.SandboxedProcessService0:0:@7109e82}
+    binding=AppBindRecord{bb439f4 ar.chanchi.app/org.chromium.content.app.SandboxedProcessService0:0:ar.chanchi.app}
+    conn=android.os.BinderProxy@7109e82 flags=0x80000021
