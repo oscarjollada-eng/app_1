@@ -229,6 +229,8 @@ final class Scraper {
                         android.util.Log.i("ChanchiScan", "detalle " + ad.optString("rid") + " título=" + (res == null ? "-" : res.optString("title")) + " len=" + (res == null ? -1 : res.optString("text").length()) + " lat=" + (res == null ? "-" : res.opt("lat")) + " fotos=" + (res == null || res.optJSONArray("photos") == null ? 0 : res.optJSONArray("photos").length()));
                         if (res != null && !res.optBoolean("blocked") && res.optString("text").length() > 800) {
                             String text = res.optString("text");
+                            String tt = Parse.norm(res.optString("title"));
+                            if (tt.startsWith("venta") || tt.contains("oficina") || tt.contains("local comercial") || tt.contains("showroom") || tt.contains("galpon") || tt.contains("cochera en alquiler")) ad.put("bad", true);
                             Parse.features(ad, text);
                             Parse.fill(ad, text);
                             if (!res.isNull("lat") && Parse.inCaba(res.optDouble("lat"), res.optDouble("lng"))) {
