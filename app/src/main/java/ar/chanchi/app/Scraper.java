@@ -248,7 +248,7 @@ final class Scraper {
             synchronized (store) {
                 for (JSONObject o : store.ads().values()) {
                     if (o.optBoolean("ready") && o.has("lat") && !o.optBoolean("notified")) {
-                        o.put("notified", true);
+                        try { o.put("notified", true); } catch (Exception ignored) {}
                         if (!o.optBoolean("base")) fresh.add(o);
                     }
                 }
