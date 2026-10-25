@@ -154,7 +154,7 @@ final class Scraper {
         if (n <= 1) return url;
         if (id.equals("zonaprop")) return url.replaceFirst("\\.html.*$", "-pagina-" + n + ".html");
         if (id.equals("argenprop")) return url + (url.contains("?") ? "&" : "?") + "pagina-" + n;
-        return url.replaceAll("/+$", "") + "/_Desde_" + ((n - 1) * 48 + 1);
+        return url.replaceAll("/+$", "") + "/_Desde_" + ((n - 1) * 48 + 1) + "_NoIndex_True";
     }
 
     private void pages(String id, String base, int total, boolean base0, List<JSONObject> pending, Runnable next) {
